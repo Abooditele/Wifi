@@ -21,19 +21,11 @@ android {
     versionName = "1.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-  }
 
-  // Generate per-ABI APKs and build only arm64-v8a.
-  // NOTE: do not also set ndk.abiFilters for the same ABI — AGP raises
-  // "Conflicting configuration" if both ndk abiFilters and splits abi filters
-  // specify the same ABI.
-  splits {
-    abi {
-      isEnable = true
-      reset()
-      include("arm64-v8a")
-      isUniversalApk = false
-    }
+    // Restrict packaged native libraries to ARM 64-bit (arm64-v8a) only.
+    // The resulting APK will only contain arm64-v8a .so files, so it will
+    // only run on ARM 64-bit devices.
+    ndk { abiFilters += "arm64-v8a" }
   }
 
   signingConfigs {

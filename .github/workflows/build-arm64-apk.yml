@@ -75,7 +75,7 @@ jobs:
           KEY_PASSWORD: ${{ env.KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          gradle assembleArm64-v8aRelease \
+          gradle assembleRelease \
             --no-daemon \
             --stacktrace
 
