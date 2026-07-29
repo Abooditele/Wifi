@@ -1,6 +1,5 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,15 +17,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Computer
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,6 +40,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -50,6 +54,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,12 +68,19 @@ fun DeviceListScreen(
     devices: List<DeviceEntity>,
     searchQuery: String,
     myDeviceName: String,
+    myDeviceId: String,
+    blockedDevices: List<DeviceEntity>,
     onSearchQueryChange: (String) -> Unit,
     onDeviceSelected: (DeviceEntity) -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onConnectManually: (String, Int, (Boolean) -> Unit) -> Unit,
+    onSetBlocked: (String, Boolean) -> Unit
 ) {
     var isSearchActive by remember { mutableStateOf(false) }
+    var showManualConnect by remember { mutableStateOf(false) }
+    var showBlockedList by remember { mutableStateOf(false) }
     val onlineCount = devices.count { it.isOnline }
+    val totalUnread = devices.sumOf { it.unreadCount }
 
     Scaffold(
         topBar = {
@@ -78,15 +90,13 @@ fun DeviceListScreen(
                         OutlinedTextField(
                             value = searchQuery,
                             onValueChange = onSearchQueryChange,
-                            placeholder = { Text("Search LAN peers...") },
+                            placeholder = { Text("Search LAN peers…") },
                             singleLine = true,
                             trailingIcon = {
                                 IconButton(onClick = {
                                     isSearchActive = false
                                     onSearchQueryChange("")
-                                }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Close search")
-                                }
+                                }) { Icon(Icons.Default.Close, contentDescription = "Close search") }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -113,11 +123,18 @@ fun DeviceListScreen(
                             Icon(Icons.Default.Search, contentDescription = "Search")
                         }
                         IconButton(
+                            onClick = { showManualConnect = true },
+                            modifier = Modifier.testTag("manual_connect_button")
+                        ) { Icon(Icons.Default.Add, contentDescription = "Connect manually") }
+                        if (blockedDevices.isNotEmpty()) {
+                            IconButton(onClick = { showBlockedList = true }) {
+                                Icon(Icons.Default.Block, contentDescription = "Blocked list")
+                            }
+                        }
+                        IconButton(
                             onClick = onOpenSettings,
                             modifier = Modifier.testTag("settings_button")
-                        ) {
-                            Icon(Icons.Default.Settings, contentDescription = "Settings")
-                        }
+                        ) { Icon(Icons.Default.Settings, contentDescription = "Settings") }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -132,7 +149,6 @@ fun DeviceListScreen(
                 .padding(padding)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // LAN Status Banner
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
@@ -142,25 +158,13 @@ fun DeviceListScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Wifi,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
+                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Wifi, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
+                        Text("Local Wi-Fi Peer Discovery", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         Text(
-                            text = "Local Wi-Fi Peer Discovery",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
-                        )
-                        Text(
-                            text = "UDP broadcast active. No internet required.",
+                            "UDP broadcast active. Background service running. No internet required.",
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -176,21 +180,12 @@ fun DeviceListScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.Computer,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
+                        Icon(Icons.Default.Computer, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Searching for LAN devices...",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
+                        Text("Searching for LAN devices…", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Connect another phone or computer to the same Wi-Fi network running LAN Messenger.",
+                            "Tap + to connect manually by IP address, or wait for automatic discovery.",
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 16.dp)
@@ -198,30 +193,62 @@ fun DeviceListScreen(
                     }
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 8.dp)
-                ) {
+                LazyColumn(modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 8.dp)) {
                     items(devices, key = { it.deviceId }) { device ->
                         DeviceItemCard(
                             device = device,
-                            onClick = { onDeviceSelected(device) }
+                            onClick = { onDeviceSelected(device) },
+                            onBlock = { onSetBlocked(device.deviceId, true) }
                         )
                     }
                 }
             }
         }
     }
+
+    if (showManualConnect) {
+        ManualConnectDialog(
+            onDismiss = { showManualConnect = false },
+            onConnect = { ip, port, cb ->
+                onConnectManually(ip, port, cb)
+                showManualConnect = false
+            }
+        )
+    }
+
+    if (showBlockedList) {
+        AlertDialog(
+            onDismissRequest = { showBlockedList = false },
+            title = { Text("Blocked Devices") },
+            text = {
+                if (blockedDevices.isEmpty()) {
+                    Text("No blocked devices.")
+                } else {
+                    Column {
+                        blockedDevices.forEach { d ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(d.name, modifier = Modifier.weight(1f))
+                                TextButton(onClick = { onSetBlocked(d.deviceId, false) }) { Text("Unblock") }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showBlockedList = false }) { Text("Close") } }
+        )
+    }
 }
 
 @Composable
-fun DeviceItemCard(
-    device: DeviceEntity,
-    onClick: () -> Unit
-) {
+fun DeviceItemCard(device: DeviceEntity, onClick: () -> Unit, onBlock: () -> Unit) {
     val avatarColor = parseHexColor(device.avatarColorHex)
-
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(12.dp),
@@ -231,28 +258,13 @@ fun DeviceItemCard(
             .clickable { onClick() }
             .testTag("device_item_${device.deviceId}")
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Avatar with online status indicator badge
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box {
-                Surface(
-                    color = avatarColor,
-                    shape = CircleShape,
-                    modifier = Modifier.size(48.dp)
-                ) {
+                Surface(color = avatarColor, shape = CircleShape, modifier = Modifier.size(48.dp)) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = device.name.take(1).uppercase(),
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp
-                        )
+                        Text(device.name.take(1).uppercase(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                     }
                 }
-
-                // Online badge
                 Box(
                     modifier = Modifier
                         .size(14.dp)
@@ -261,9 +273,7 @@ fun DeviceItemCard(
                         .align(Alignment.BottomEnd)
                 )
             }
-
             Spacer(modifier = Modifier.width(12.dp))
-
             Column(modifier = Modifier.weight(1f)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -271,7 +281,7 @@ fun DeviceItemCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = device.name,
+                        text = if (device.isFavorite) "★ ${device.name}" else device.name,
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
                         maxLines = 1,
@@ -284,9 +294,7 @@ fun DeviceItemCard(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-
                 Spacer(modifier = Modifier.height(2.dp))
-
                 Text(
                     text = "${device.ipAddress}:${device.tcpPort} • ${device.statusMessage}",
                     fontSize = 12.sp,
@@ -295,26 +303,68 @@ fun DeviceItemCard(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-
             if (device.unreadCount > 0) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Badge(containerColor = MaterialTheme.colorScheme.primary) {
-                    Text(
-                        text = device.unreadCount.toString(),
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(device.unreadCount.toString(), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
     }
 }
 
+@Composable
+fun ManualConnectDialog(onDismiss: () -> Unit, onConnect: (String, Int, (Boolean) -> Unit) -> Unit) {
+    var ip by remember { mutableStateOf("192.168.1.") }
+    var port by remember { mutableStateOf("8889") }
+    var result by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Connect Manually") },
+        text = {
+            Column {
+                Text(
+                    "Use this when automatic discovery fails (isolated network, VPN, guest Wi-Fi).",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = ip,
+                    onValueChange = { ip = it },
+                    label = { Text("IP Address") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = port,
+                    onValueChange = { port = it.filter { c -> c.isDigit() } },
+                    label = { Text("Port (default 8889)") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                result?.let {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(it, fontSize = 12.sp, color = if (it.startsWith("Connected")) OnlineGreen else MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                val portInt = port.toIntOrNull() ?: 8889
+                onConnect(ip.trim(), portInt) { ok ->
+                    result = if (ok) "Connected — peer added to list" else "Failed to connect"
+                }
+            }) { Text("Connect") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
+}
+
 private fun parseHexColor(hex: String): Color {
-    return try {
-        Color(android.graphics.Color.parseColor(hex))
-    } catch (e: Exception) {
-        Color(0xFF0088CC)
-    }
+    return try { Color(android.graphics.Color.parseColor(hex)) } catch (e: Exception) { Color(0xFF0088CC) }
 }

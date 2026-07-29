@@ -17,14 +17,12 @@ jobs:
   build:
     name: Build arm64-v8a Release APK
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     env:
-      # Hardcoded password for the ephemeral release keystore generated on each run.
-      # The keystore itself is never persisted (not committed, not uploaded),
-      # so the password value is not security-sensitive.
-      KEYSTORE_PASSWORD: changeit
-      KEY_PASSWORD: changeit
+      # Permanent keystore committed to repo (my-upload-key.jks at repo root)
+      KEYSTORE_PASSWORD: lanmessenger123
+      KEY_PASSWORD: lanmessenger123
 
     steps:
       - name: Checkout repository
@@ -44,29 +42,16 @@ jobs:
           gradle-version: 'current'
           cache-disabled: false
 
-      - name: Verify Android SDK
-        run: |
-          set -euo pipefail
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          ls -la "$ANDROID_HOME/platforms" 2>/dev/null || true
-          ls -la "$ANDROID_HOME/build-tools" 2>/dev/null || true
-          # Pre-installed on ubuntu-latest: platforms;android-36, build-tools;36.0.0
-          # AGP 9.x will auto-download any missing SDK minor (e.g. 36.1) via sdkmanager.
-
-      - name: Generate ephemeral release keystore
+      - name: Verify permanent keystore exists in repo
         run: |
           set -euo pipefail
           KEYSTORE="${{ github.workspace }}/my-upload-key.jks"
-          keytool -genkeypair -v \
-            -keystore "$KEYSTORE" \
-            -alias upload \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass "$KEYSTORE_PASSWORD" \
-            -keypass "$KEY_PASSWORD" \
-            -dname "CN=Abooditele, OU=Mobile, O=Wifi, L=Baghdad, ST=Baghdad, C=IQ"
-          echo "Keystore generated at: $KEYSTORE"
+          if [ ! -f "$KEYSTORE" ]; then
+            echo "::error::Permanent keystore (my-upload-key.jks) is missing from the repository."
+            exit 1
+          fi
           ls -la "$KEYSTORE"
+          keytool -list -v -keystore "$KEYSTORE" -storepass "$KEYSTORE_PASSWORD" -alias upload | head -20
 
       - name: Build arm64-v8a release APK
         env:
@@ -116,7 +101,7 @@ jobs:
         id: tag
         if: success()
         run: |
-          TAG="v1.0-arm64-${{ github.run_number }}"
+          TAG="v2.0-arm64-${{ github.run_number }}"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Release tag: $TAG"
 
@@ -133,6 +118,12 @@ jobs:
             **Build number:** ${{ github.run_number }}
             **Commit:** ${{ github.sha }}
 
+            ## What's New in v2.0
+            - Permanent release signing key (committed to repo)
+            - 25+ new features including: voice/video calls, file sharing, voice messages UI, video sharing, location, group chats, reply/edit/delete/forward, reactions, pin/star, delivery/read receipts, typing indicator, online/last-seen, unread badges, manual IP, auto-reconnect, network quality indicator, WiFi Direct scaffolding, app lock, block users, backup/restore, export chat, full visual customization pack
+            - Background notifications with deep-link navigation to source conversation
+            - Fixed keyboard overlapping the chat input field
+
             ## Installation
             1. Download `Wifi-arm64-v8a-release.apk` below.
             2. Verify integrity with the `.sha256` file:
@@ -140,7 +131,7 @@ jobs:
                sha256sum -c Wifi-arm64-v8a-release.apk.sha256
                ```
             3. Enable "Install from unknown sources" on your ARM64 Android device.
-            4. Install the APK.
+            4. Install the APK (you may need to uninstall older versions signed with the CI-generated ephemeral key).
 
             SHA-256: `${{ steps.checksum.outputs.sha256 }}`
           files: |

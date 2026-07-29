@@ -16,3 +16,5 @@
 local.properties
 .env
 debug.keystore
+# NOTE: my-upload-key.jks is intentionally committed as the permanent
+# release signing key for this app. Do NOT add it to .gitignore.

@@ -72,7 +72,7 @@ class TcpSocketServer(val port: Int = 8889) {
 
                 // Read length prefix
                 val length = inputStream.readInt()
-                if (length <= 0 || length > 10 * 1024 * 1024) { // 10MB max packet guard
+                if (length <= 0 || length > 50 * 1024 * 1024) { // 50MB max packet guard (for video/large files)
                     return
                 }
 

@@ -14,7 +14,25 @@ enum class PacketType {
     RECORDING_START,
     RECORDING_STOP,
     FILE_TRANSFER_HEADER,
-    FILE_TRANSFER_CHUNK
+    FILE_TRANSFER_CHUNK,
+    // v2.0 packet types
+    MESSAGE_EDIT,
+    MESSAGE_DELETE,
+    MESSAGE_REACTION,
+    MESSAGE_FORWARD,
+    MESSAGE_PIN,
+    MESSAGE_STAR,
+    PRESENCE_HEARTBEAT,
+    PRESENCE_REQUEST,
+    CALL_INVITE,
+    CALL_ACCEPT,
+    CALL_REJECT,
+    CALL_END,
+    CALL_SDP,
+    CALL_ICE,
+    GROUP_CREATE,
+    GROUP_UPDATE,
+    GROUP_MESSAGE
 }
 
 @JsonClass(generateAdapter = true)
@@ -29,7 +47,7 @@ data class NetworkPacket(
     val messageId: String? = null,
     val conversationDeviceId: String? = null,
     val encryptedContent: String? = null, // Base64 encrypted text or metadata
-    val messageTypeStr: String? = null,   // TEXT, IMAGE, FILE, AUDIO
+    val messageTypeStr: String? = null,   // TEXT, IMAGE, FILE, AUDIO, VIDEO, LOCATION, SYSTEM, CALL_SIGNAL
     val mediaName: String? = null,
     val mediaSize: Long = 0L,
     val replyToId: String? = null,
@@ -37,5 +55,22 @@ data class NetworkPacket(
     val fileChunkIndex: Int = 0,
     val totalFileChunks: Int = 0,
     val fileChunkBase64: String? = null,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    // v2.0 fields
+    val editedContent: String? = null,
+    val deleteForEveryone: Boolean = false,
+    val reactionEmoji: String? = null,
+    val reactionAdd: Boolean = true,
+    val isForwarded: Boolean = false,
+    val pin: Boolean = true,
+    val star: Boolean = true,
+    val locationLat: Double? = null,
+    val locationLng: Double? = null,
+    val callType: String? = null, // AUDIO / VIDEO
+    val callSdp: String? = null,
+    val callIce: String? = null,
+    val presenceOnline: Boolean = true,
+    val groupId: String? = null,
+    val groupName: String? = null,
+    val groupMembersCsv: String? = null
 )

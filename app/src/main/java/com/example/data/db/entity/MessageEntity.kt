@@ -7,14 +7,19 @@ enum class MessageType {
     TEXT,
     IMAGE,
     FILE,
-    AUDIO
+    AUDIO,
+    VIDEO,
+    LOCATION,
+    SYSTEM,
+    CALL_SIGNAL
 }
 
 enum class MessageStatus {
     SENDING,
     SENT,
     DELIVERED,
-    READ
+    READ,
+    FAILED
 }
 
 @Entity(tableName = "messages")
@@ -31,5 +36,18 @@ data class MessageEntity(
     val status: MessageStatus = MessageStatus.SENDING,
     val isOutgoing: Boolean = true,
     val replyToId: String? = null,
-    val replyToContent: String? = null
+    val replyToContent: String? = null,
+    // v2.0 fields
+    val isEdited: Boolean = false,
+    val editedAt: Long? = null,
+    val isDeletedForEveryone: Boolean = false,
+    val isForwarded: Boolean = false,
+    val isStarred: Boolean = false,
+    val isPinned: Boolean = false,
+    val pinnedAt: Long? = null,
+    val reactions: String = "", // JSON map of deviceId -> emoji
+    val locationLat: Double? = null,
+    val locationLng: Double? = null,
+    val callDurationMs: Long = 0L,
+    val callStatus: String? = null // OUTGOING/MISSED/DECLINED/COMPLETED
 )

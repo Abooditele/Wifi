@@ -13,5 +13,12 @@ data class DeviceEntity(
     val lastSeen: Long = System.currentTimeMillis(),
     val avatarColorHex: String = "#0088CC",
     val statusMessage: String = "Available on LAN",
-    val unreadCount: Int = 0
+    val unreadCount: Int = 0,
+    // v2.0 fields
+    val isBlocked: Boolean = false,
+    val isFavorite: Boolean = false,
+    val isMuted: Boolean = false,
+    val customWallpaperColor: String? = null,
+    val lastTypingAt: Long = 0L,
+    val lastOnlineAt: Long = System.currentTimeMillis()
 )
