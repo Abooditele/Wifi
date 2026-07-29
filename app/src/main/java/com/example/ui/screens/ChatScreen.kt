@@ -124,7 +124,7 @@ fun ChatScreen(
     onSetReaction: (String, String, Boolean) -> Unit,
     onTogglePin: (String, Boolean) -> Unit,
     onToggleStar: (String, Boolean) -> Unit,
-    onExportChat: (java.io.File) -> Unit,
+    onExportChat: ((java.io.File) -> Unit) -> Unit,
     onSetMuted: (Boolean) -> Unit,
     onSetWallpaper: (String?) -> Unit
 ) {
@@ -306,7 +306,10 @@ fun ChatScreen(
                                     leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
                                     onClick = {
                                         showOverflowMenu = false
-                                        onExportChat(File(context.filesDir, "chat_export_${System.currentTimeMillis()}.txt"))
+                                        Toast.makeText(context, "Exporting chat…", Toast.LENGTH_SHORT).show()
+                                        onExportChat { f ->
+                                            Toast.makeText(context, "Saved: ${f.absolutePath}", Toast.LENGTH_LONG).show()
+                                        }
                                     }
                                 )
                                 DropdownMenuItem(

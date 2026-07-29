@@ -5,6 +5,10 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.RemoteInput
 import com.example.data.repository.ChatRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Handles inline replies from message notifications.
@@ -14,6 +18,8 @@ import com.example.data.repository.ChatRepository
  * text to the ChatRepository which sends it over the network to the peer.
  */
 class DirectReplyReceiver : BroadcastReceiver() {
+
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != NotificationHelper.ACTION_REMOTE_REPLY) return
@@ -32,19 +38,16 @@ class DirectReplyReceiver : BroadcastReceiver() {
         val notificationId = notificationTag?.removePrefix("msg_")?.toIntOrNull()
             ?: targetDeviceId.hashCode()
 
-        // Mark the notification as "Replied: ..." so the user sees their reply
-        val replyShown = NotificationHelper.javaClass.let {
-            android.util.Log.d("DirectReply", "Sending reply to $targetDeviceId: $replyText")
-        }
+        android.util.Log.d("DirectReply", "Sending reply to $targetDeviceId: $replyText")
 
-        // Send the reply on a background thread via the singleton repository.
-        Thread {
+        // Send the reply from a coroutine since sendTextMessageByDeviceId is suspend.
+        scope.launch {
             try {
                 val repo = ChatRepository.getSingleton(context.applicationContext)
                 repo.sendTextMessageByDeviceId(targetDeviceId, replyText)
             } catch (e: Exception) {
                 android.util.Log.e("DirectReply", "Failed to send reply", e)
             }
-        }.start()
+        }
     }
 }
