@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Chat Bubble Shadow & Fill -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,30 C27.373,30 22,35.373 22,42 C22,48.627 27.373,54 34,54 C36.2,54 38.2,53.4 40,52.4 L46,55 L44.4,49.6 C45.4,47.4 46,44.8 46,42 C46,35.373 40.627,30 34,30 Z" />
+    <path
+        android:fillColor="#00E5FF"
+        android:pathData="M74,48 C67.373,48 62,53.373 62,60 C62,62.8 62.6,65.4 63.6,67.6 L62,73 L68,70.4 C69.8,71.4 71.8,72 74,72 C80.627,72 86,66.627 86,60 C86,53.373 80.627,48 74,48 Z" />
+    <!-- Wi-Fi / Connection Waves in center -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,34 A18,18 0 0,1 68,41 M54,40 A10,10 0 0,1 62,44"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#00E5FF"
+        android:pathData="M54,48 A2,2 0 1,1 54,47.9" />
+</vector>

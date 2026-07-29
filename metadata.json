@@ -1,0 +1,6 @@
+{
+  "name": "LAN Messenger",
+  "description": "Secure offline peer-to-peer Wi-Fi messaging and file transfer for local area networks.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
