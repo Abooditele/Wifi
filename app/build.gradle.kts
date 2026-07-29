@@ -21,6 +21,19 @@ android {
     versionName = "1.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+    // Restrict native libraries to ARM 64-bit only (arm64-v8a).
+    ndk { abiFilters += "arm64-v8a" }
+  }
+
+  // Generate per-ABI APKs and build only arm64-v8a.
+  splits {
+    abi {
+      isEnable = true
+      reset()
+      include("arm64-v8a")
+      isUniversalApk = false
+    }
   }
 
   signingConfigs {
