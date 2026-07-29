@@ -81,6 +81,7 @@ jobs:
 
       - name: Locate built APK
         id: locate
+        if: success()
         run: |
           set -euo pipefail
           APK_PATH=$(find app/build/outputs/apk -name "*.apk" -type f | head -1)
@@ -93,6 +94,7 @@ jobs:
           echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Stage APK with descriptive name
+        if: success()
         run: |
           set -euo pipefail
           STAGED="${{ github.workspace }}/Wifi-arm64-v8a-release.apk"
@@ -101,6 +103,7 @@ jobs:
 
       - name: Compute checksum
         id: checksum
+        if: success()
         run: |
           set -euo pipefail
           APK="${{ github.workspace }}/Wifi-arm64-v8a-release.apk"
@@ -111,12 +114,14 @@ jobs:
 
       - name: Prepare release tag
         id: tag
+        if: success()
         run: |
           TAG="v1.0-arm64-${{ github.run_number }}"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Release tag: $TAG"
 
       - name: Create GitHub Release and upload APK
+        if: success()
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
